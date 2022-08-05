@@ -27,9 +27,13 @@ insert into Employee values
 
 
 #Solution:
-SELECT project_id
-FROM project 
+WITH t1 AS
+(SELECT project_id, COUNT(DISTINCT employee_id) cnt
+FROM project
 GROUP BY 1
-ORDER BY COUNT(DISTINCT employee_id) DESC
-LIMIT 1
+ORDER BY 2 DESC)
+
+SELECT project_id
+FROM t1
+WHERE cnt = (SELECT MAX(cnt) FROM t1)
 
