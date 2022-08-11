@@ -42,19 +42,18 @@ insert into items values
 
 
 #Solution:
-WITH t1 AS (
-    SELECT seller_id, item_id
-    FROM (
-        SELECT seller_id, item_id,
-            ROW_NUMBER() OVER (PARTITION BY seller_id ORDER BY order_date) AS r
-        FROM Orders
-        ) rnk
-    WHERE r = 2
-)
+WITH t1 AS
+(SELECT u.user_id seller_id, favorite_brand, order_date, o.item_id, item_brand,
+		RANK() OVER(PARTITION BY seller_id ORDER BY order_date) rnk
+FROM users u
+LEFT JOIN orders o ON u.user_id = o.seller_id
+LEFT JOIN items i ON o.item_id = i.item_id) 
 
-SELECT *
-FROM Users u
-LEFT JOIN t1
-ON u.user_id = t1.seller_id
-LEFT JOIN Items i
-ON t1.item_id = i.item_id;
+SELECT seller_id, CASE WHEN favorite_brand = item_brand THEN 'yes' ELSE 'no' END AS 2nd_item_fav_brand
+FROM t1
+WHERE rnk = 2
+UNION ALL
+SELECT seller_id,'no'
+FROM t1
+WHERE order_date IS NULL
+ORDER BY seller_id
