@@ -15,31 +15,20 @@ insert into spending values
 
 
 #Solution:
-WITH t1 AS (
-	SELECT user_id, spend_date, amount,
-			CASE WHEN COUNT(*) OVER (PARTITION BY user_id, spend_date) = 2 THEN 'both'
-				 ELSE platform END AS platform
-    FROM spending),
-	 t2 AS (
-     SELECT spend_date, platform,
-			SUM(amount) total_amount,
-            COUNT(DISTINCT user_id) total_users
-     FROM t1
-     GROUP BY 1,2),
-     t3 AS (
-     SELECT DISTINCT spend_date 
-     FROM t2),
-     t4 AS (
-     SELECT 'desktop' platform
-	 UNION
-     SELECT 'mobile'
-     UNION
-     SELECT 'both'
-     )
-SELECT t3.spend_date, t4.platform, 
-		IFNULL(total_amount, 0) total_amount,
-        IFNULL(total_users, 0) total_users
-FROM t3
-CROSS JOIN t4
-LEFT JOIN t2 ON t2.spend_date=t3.spend_date AND t2.platform=t4.platform
+WITH t1 AS(
+SELECT user_id, spend_date, amount,
+		CASE WHEN cnt = 2 THEN 'both' ELSE platform END AS platform
+FROM (
+SELECT *,
+		COUNT(platform) OVER(PARTITION BY user_id, spend_date) cnt
+FROM spending) tmp),
+     t2 AS (SELECT DISTINCT spend_date FROM t1),
+     t3 AS (SELECT DISTINCT platform FROM t1)
+SELECT t2.spend_date, t3.platform, 
+		IFNULL(SUM(amount),0) total_amount, 
+        IFNULL(COUNT(DISTINCT user_id),0) total_users
+FROM t2
+CROSS JOIN t3
+LEFT JOIN t1 ON t1.spend_date=t2.spend_date AND t1.platform=t3.platform
+GROUP BY 1,2
 
