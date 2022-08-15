@@ -33,7 +33,7 @@ insert into transactions values
 (9,str_to_date('2020-01-25','%Y-%m-%d'),99);
 
 
-#Solution:
+#Solution 1:
 WITH RECURSIVE
 	t1 AS (
 	SELECT v.user_id,visit_date,
@@ -55,4 +55,27 @@ WITH RECURSIVE
 SELECT t2.transactions_count, COUNT(num_trans) visits_count
 FROM t2
 LEFT JOIN t1 ON t1.num_trans = t2.transactions_count
+GROUP BY 1
+
+
+
+#Solution 2:
+WITH RECURSIVE
+	t1 AS (
+SELECT DISTINCT v.user_id, visit_date, t.user_id tran_user_id, transaction_date,
+		COUNT(transaction_date) OVER(PARTITION BY user_id, visit_date) transactions_count
+FROM visits v
+LEFT JOIN transactions t ON v.user_id=t.user_id AND v.visit_date=t.transaction_date
+ORDER BY 1
+),
+	t2 AS (
+SELECT MIN(transactions_count) transactions_count FROM t1
+UNION ALL
+SELECT transactions_count + 1 FROM t2
+WHERE transactions_count < (SELECT MAX(transactions_count) FROM t1)
+)
+
+SELECT t2.transactions_count, COUNT(visit_date) visits_count
+FROM t2
+LEFT JOIN t1 USING(transactions_count)
 GROUP BY 1
