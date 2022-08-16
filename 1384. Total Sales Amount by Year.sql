@@ -22,11 +22,27 @@ insert into sales values
 
 
 #Solution:
-SELECT s.product_id, product_name, YEAR(date) report_year,
-		SUM(average_daily_sales) total_amount
-FROM sales s
-JOIN product p USING(product_id)
-CROSS JOIN t1
-WHERE date BETWEEN period_start AND period_end
-GROUP BY 1,2,3
-ORDER BY 1
+       select s.product_id, product_name, '2018' as report_year, 
+               case when year(period_end) = 2018 then average_daily_sales * (dayofyear(period_end)-dayofyear(period_start) + 1)
+                    when year(period_end) >= 2019 then average_daily_sales * (365 - dayofyear(period_start) + 1)
+                    end as total_amount
+        from Sales s left join Product p on s.product_id = p.product_id
+        where year(period_start) = 2018
+        UNION ALL
+        select s.product_id, product_name, '2019' as report_year, 
+				case when year(period_start) = 2019 and year(period_end) = 2019 then average_daily_sales*(dayofyear(period_end)-dayofyear(period_start)+1)
+					 when year(period_start) = 2019 and year(period_end) > 2019 then average_daily_sales*(365-dayofyear(period_start)+1)
+					 when year(period_start) < 2019 and year(period_end) = 2019 then average_daily_sales*(dayofyear(period_end))
+                     when year(period_start) < 2019 and year(period_end) > 2019 then average_daily_sales*365
+                     end as total_amount
+        from Sales s left join Product p on s.product_id = p.product_id
+        where year(period_end) > 2018 and year(period_start) < 2020
+        UNION ALL
+        select s.product_id, product_name, '2020' as report_year, 
+				case when year(period_start) = 2020 then average_daily_sales*(dayofyear(period_end)-dayofyear(period_start)+1)
+					 when year(period_start) < 2020 then average_daily_sales*(dayofyear(period_end))
+                     end as total_amount
+        from Sales s left join Product p on s.product_id = p.product_id
+        where year(period_end) = 2020
+	    order by product_id, report_year
+        
